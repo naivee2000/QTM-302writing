@@ -1,0 +1,268 @@
+---
+title: "EDA Notebook"
+author: "Shaoyang Ni & Jenny Chao"
+date: "2023-10-04"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction ##
+
+This study delves into the fascinating interplay between various socio-economic and household dynamics and their potential impact on fertility rates. The central question we seek to answer is: Which socio-economic and household factors play a decisive role in shaping individual fertility decisions?
+
+We are currently witnessing a paradigm shift in the economic analysis of fertility. The traditional models, which predominantly focused on two consistent observations – the inverse relationship between income and fertility, and the similar inverse correlation between women's participation in the labor force and fertility – are being reevaluated. These models were initially designed to explain patterns observed both across different countries and within various families in the same country. However, in the modern era, these established patterns are no longer universally applicable, signaling a significant evolution in the economics of fertility.
+
+In contemporary societies, where socio-economic landscapes are in constant flux, understanding fertility decisions takes on a renewed significance. Rapid urbanization, changing family structures, and evolving socio-economic contexts make this topic particularly relevant for urban households in the United States from 2018 to 2022. These households are at the crossroads of myriad choices shaped by factors ranging from income levels and academic accomplishments to work-life balance and family support mechanisms.
+
+The implications of discerning the determinants of fertility rates extend far beyond the confines of academia. For policymakers, a deep grasp of these dynamics facilitates the crafting of informed policies in fields such as welfare, education, and employment. This, in turn, ensures that such policies are in harmony with the desired population growth trajectories. Similarly, for the business community, especially those in sectors like education, healthcare, and real estate, understanding fertility trends can be instrumental in forecasting demand and strategizing for the future. Furthermore, for individuals and families contemplating their life's direction, being aware of these influential factors provides a valuable socio-economic lens, aiding in more informed life choices.
+
+In essence, our exploration into the determinants of fertility rates holds the promise of influencing key decisions – from the chambers of government offices to the living rooms of American households.
+
+Our analysis is underpinned by data from IPUMS-USA, a branch of the Integrated Public Use Microdata Series (IPUMS) managed by the University of Minnesota. This dataset, spanning 2018 to 2022, zeroes in on urban-centric households in the U.S. It provides a trove of variables, encapsulating demographic, socio-economic, and household dynamics like income brackets, educational achievements, working hours, and familial support. IPUMS is renowned for harmonizing global microdata, making it a pivotal asset for research. Through this rich dataset, we aim to decipher the multifaceted factors shaping fertility decisions.
+
+## Literature Review ##
+
+In the quest to unravel the complexities of fertility, family planning, and the socio-economic factors intertwined with these issues, several researchers have delved deep into extensive data analyses and literature reviews, providing us with critical insights. This essay synthesizes the significant contributions made by Țarcă V, Țarcă E, Luca FA, Wang & Sun, Götmark & Andersson, and Dehlendorf et al., culminating in a comprehensive understanding of the multifaceted nature of these subjects.
+Beginning with the detailed exploration conducted by Țarcă V, Țarcă E, and Luca FA, their work stands as a testament to the intricate relationship between socio-economic factors and female fertility. Using a dataset from 171 countries, they meticulously analyze the impact of variables such as income, substance consumption, and body mass index on birth rates. The authors establish a pronounced negative correlation between income and fertility, contributing to the global discourse on declining fertility rates. Structurally, the article is well-organized and transparent, particularly in acknowledging its limitations and setting the stage for interpreting the findings.
+Wang & Sun (2016) and Götmark & Andersson (2020) offer complementary perspectives on the influences affecting Total Fertility Rate (TFR) across various global regions. Wang & Sun focus on socio-economic and political factors, providing a nuanced understanding of how these elements vary across countries with different income levels. Götmark & Andersson, on the other hand, present a broader analysis encompassing education, economy, religiosity, contraceptive use, and family planning programs. Both articles are commendably organized, providing clear and logical progressions in their narratives.
+Dehlendorf et al. (2010) take us into the domain of family planning, exploring the disparities rooted in patient behaviors, health care systems, and provider-related factors. Their article stands as a significant contribution to the literature, urging readers to adopt a holistic view and recognize the complex interactions at play. While they provide a comprehensive review and identify specific issues prevalent in various communities, the synthesis of information presented could be further enhanced to provide clearer pathways for future research and policy recommendations.
+Critically reviewing these works through the lens of Galvan & Galvan’s guidelines reveals a strong adherence to the principles of a well-conducted literature review and data analysis across all articles. They define clear purposes, cover a broad range of existing literature, critically evaluate the works cited, and synthesize the findings coherently. However, potential areas of improvement include addressing data limitations, enhancing the synthesis of information, and providing clearer future research directions.
+Kenneth Johnson's  (2020) article analyzes 2019 data from the National Center for Health Statistics, highlighting the lowest U.S. fertility rates and the fewest births since 1985—a notable decline of 570,000 since 2007. The article questions the future impact of the COVID-19 pandemic on fertility: distinguishing between births that will be postponed or lost altogether, and underscores the potential consequences for health care, education, and the labor market.
+
+## Data Distribution ##
+
+The five variables - FAMINC (family income), AFCB (age at first child's birth), EDUC (education level), UHRSWORKT (usual hours worked per week), and INCWAGE (individual's wage income) - are chosen to predict fertility because they offer a comprehensive view of the socio-economic factors that influence reproductive decisions. Family income and individual wage provide insights into financial stability, which is crucial for raising children. Education level often correlates with family planning choices and attitudes towards childbearing. Age at first child's birth can indicate reproductive patterns and preferences. Lastly, work hours reflect the work-life balance, which significantly impacts the feasibility and desire for a larger family. These variables together form a multifaceted approach to understanding and predicting fertility behavior.
+
+```{R}
+library(tidyverse)
+```
+```{r}
+ipums <- read.csv("cps_00004.csv")
+str(ipums)
+```
+```{r, include=FALSE}
+# Filter and clean data
+data <- subset(ipums, SEX == 2)
+data$EDCYC <- NULL
+data$EMPSTAT <- NULL
+data$NCHLT5 <- NULL
+
+data <- subset(data, !(FAMINC %in% c(995, 996, 997, 999)))
+data <- subset(data, INCWAGE != 99999999.0)
+##data <- subset(data, YNGCH != 99)
+##data <- subset(data, !(CLASSWLY %in% c(0.0, 99)))
+##data <- subset(data, LABFORCE != 0)
+data <- subset(data, !(UHRSWORKT %in% c(999, 997)))
+data <- subset(data, !(EDUC %in% c(0, 1, 999)))
+##data <- subset(data, ELDCH != 99)
+##data <- subset(data, PENSION != 0)
+
+#This refines the dataset by excluding data points that could compromise the validity or skew the results
+
+data$AFCB <- data$AGE - data$ELDCH
+
+
+# Drop NA values
+na.omit(data)
+```
+### Personal income distribution ###
+
+This gives an overview of the distribution of personal income in the year 2018. The inclusion of the 'income wage' variable in our analysis provides a deeper understanding of its influence on Nchild. The presented graph visually represents this correlation, highlighting the importance of income wage in determining fertility patterns. A person's wage can play a pivotal role in decisions about family size, as it often dictates the resources available for child-rearing.
+
+```{r}
+ggplot(data, aes(x=INCWAGE)) + 
+  geom_histogram(fill="lightblue", color="black", binwidth=10000) + 
+  theme_minimal() + 
+  labs(title="Distribution of Income Wage", x="Income Wage", y="Frequency")
+```
+
+The graph showcases the distribution of income wages. It reveals a pronounced skew towards the lower wage range, with a peak frequency in a specific wage bracket. As the income wage increases, the frequency of individuals earning those amounts significantly decreases, indicating fewer individuals earn higher wages.
+
+
+### Family income distribution ###
+
+This gives an overview of the distribution of family income in the year 2018. In the accompanying graph, we delve into the distribution of family income, providing insights into the financial spectrum of households. Understanding family income can offer significant clues about the economic conditions influencing decisions, such as the number of children (Nchild) a family chooses to have.
+
+```{r}
+ggplot(data, aes(x=FAMINC)) + 
+  geom_histogram(fill="lightblue", color="black", binwidth=10) + 
+  theme_minimal() + 
+  labs(title="Distribution of Family Income", x="Family Income", y="Frequency")
+```
+
+The graph depicts the distribution of family income. Most families appear to have an income at the higher end of the scale (over $50000), as indicated by the sharp peak on the right. Conversely, fewer families fall within the middle income brackets, and a minimal number reside in the lowest income range.
+
+### Education Attainment distribution ###
+
+In the presented graph, we explore the distribution of educational attainment across the population. The level of education an individual achieves can have profound implications, potentially influencing life choices such as the number of children (Nchild) one might decide to have. 
+
+```{r}
+ggplot(data, aes(x=EDUC)) + 
+  geom_histogram(fill="lightblue", color="black", binwidth=10) + 
+  theme_minimal() + 
+  labs(title="Distribution of Education Attainment", x="Education code", y="Frequency")
+```
+
+The graph depicts the distribution of education attainment within a population. A significant number have completed 5+ years of college, indicating a high level of education. This is followed closely by those with 2 years of college and those with a Bachelor's degree. Lesser individuals lie in the lower educational categories, suggesting an educated populace.
+
+
+### Hours worked per week###
+
+In this graph, we delve into the patterns of hours typically worked by individuals per week. The amount of time committed to work can directly influence personal and familial decisions, including the number of children (Nchild) one may choose to have.
+
+```{r}
+ggplot(data, aes(x=UHRSWORKT )) + 
+  geom_histogram(fill="lightblue", color="black", binwidth=10) + 
+  theme_minimal() + 
+  labs(title="Distribution of Hrs worked per week", x="Hours", y="Frequency")
+```
+
+The graph displays the distribution of hours worked per week. A prominent majority work around 40 hours, typical of a full-time job. A few individuals work significantly less or more than this benchmark. However, the frequency dramatically reduces for those working extreme hours, either minimal or in excess of 50.
+
+### Amount of Children ###
+
+In this visualization, we display the distribution for Nchild, the dependent variable in our study. Highlighting this distribution is crucial as it provides insights into the typical range and variance of family sizes, which can subsequently inform and anchor our understanding of how independent variables, like income and education, impact familial decisions.
+
+```{r}
+ggplot(data, aes(x=NCHILD )) + 
+  geom_histogram(fill="lightblue", color="black", binwidth=1) + 
+  theme_minimal() + 
+  labs(title="Distribution of Number of children", x="Number of Children", y="Frequency")
+```
+
+The graph illustrates the distribution of the number of children individuals have. A significant majority have no children, followed by decreasing frequencies for one, two, and three children. The number of people with more than three children dwindles, indicating it's less common to have larger families in this sample.
+
+
+## Modelling Process ##
+
+### FAMINC (Family income of householder) ###
+
+We've selected the FAMINC variable to investigate the role of family income in fertility decisions. Our underlying hypothesis suggests that families with higher incomes may have a higher fertility rate because their financial means can support raising more children.
+
+### AFCB (AGE WHEN FIRST CHILD WAS BORN) (AGE - ELDCH) ###
+
+The AFCB variable captures the age at which individuals had their first child. Our hypothesis posits that those who start having children at a younger age might be inclined to have more children, given the extended period they have for potential childbearing.
+
+### EDUC (Educational attainment) ###
+
+We included the EDUC variable to understand the influence of educational levels on fertility. It's hypothesized that women with advanced education might have fewer children. This belief stems from the consideration that higher education entails both direct costs, such as tuition fees and time commitment, and indirect costs like missed job opportunities. These combined costs could make having numerous children less attractive to well-educated women.
+
+### UHRSWORKT (Hours usually worked per week) ###
+
+The variable UHRSWORKT represents the typical working hours in a week. We're exploring this to see if long working hours have an inverse relationship with fertility. The hypothesis here is straightforward: working more hours weekly might reduce fertility rates as individuals would have less time and energy for child-rearing.
+
+### INCWAGE (Wage and salary income) ###
+
+Finally, the INCWAGE variable is under scrutiny to determine if there's a nuanced relationship between individual earnings and fertility. While it's anticipated that higher earnings could lead to an initial rise in fertility rates, the hypothesis also suggests that beyond a certain income threshold, parents might prefer having fewer children, emphasizing quality of upbringing over the sheer number of offspring.
+
+
+
+
+## Fitting the Model
+
+In this section, we'll be addressing the core part of our data analysis: building a linear regression model. The objective here is to understand the relationships and influences of several predictor variables on the outcome, `NCHILD`. 
+
+
+The formula, `NCHILD ~ FAMINC + AFCB + EDUC + UHRSWORKT + INCWAGE`, represents our regression model. In this formula:
+- `NCHILD` is the dependent variable we are trying to predict or understand.
+- `FAMINC`, `AFCB`, `EDUC`, `UHRSWORKT`, and `INCWAGE` are the predictor variables, i.e., the variables we believe have an influence on our dependent variable.
+
+After defining the formula, we use the `lm()` function to fit our linear regression model using the specified data.
+
+```{r}
+# Fit the model as before
+model_formula <- NCHILD ~ FAMINC + AFCB + EDUC + UHRSWORKT + INCWAGE 
+model <- lm(model_formula, data = data)
+
+# Get tidy results
+tidy_results <- broom::tidy(model, conf.int = TRUE)
+tidy_results
+```
+
+
+In this segment of code, we first define a list of relevant predictors, which includes `NCHILD`, `FAMINC`, `AFCB`, `EDUC`, `UHRSWORKT`, and `INCWAGE`. Subsequently, the dataset is filtered to retain only these specified predictors. After the filtration, the code proceeds to visualize the effect of each predictor on the outcome, `NCHILD`. This is achieved by plotting the predicted outcome against the values of each predictor, facilitating an intuitive understanding of how each predictor influences the outcome. The resultant visualization exhibits separate line plots for each predictor, accentuated by distinct colors and comprehensive labels.
+```{r}
+# List of predictors to keep
+vars_to_keep <- c("NCHILD", "FAMINC", "AFCB", "EDUC", "UHRSWORKT", "INCWAGE")
+
+# Filter the data to only include the desired predictors
+filtered_data <- data %>% select(all_of(vars_to_keep))
+
+# Plotting
+filtered_data %>% 
+  gather(variable, value, -NCHILD) %>% 
+  group_by(variable) %>% 
+  mutate(prediction = coef(model)[variable] * value + coef(model)["(Intercept)"]) %>% 
+  ggplot(aes(x = value, y = prediction, color = variable)) +
+  geom_line() +
+  facet_wrap(~ variable, scales = "free_x") +
+  labs(title = "Effect of Each Predictor on the Outcome",
+       x = "Value of Predictor",
+       y = "Predicted Outcome") +
+  theme_light()
+
+``` 
+
+
+
+## Results ##
+
+In our recent analysis, we delved into the intricate relationship between the number of children in a family, denoted as `NCHILD`, and several potential predictors. Our findings, both tabular and graphical, present a compelling narrative.
+
+Starting with the base prediction, the Intercept offers an estimated value of approximately 1.5379. In simpler terms, this suggests that in the absence of the influence of our predictors, or when they are held constant, the average number of children in a family is predicted to be just over one and a half. This base value provides a foundational understanding before we account for other variables.
+
+A particularly intriguing observation is the relationship between `NCHILD` and **Family Income** (`FAMINC`). The negative coefficient estimate of roughly -2.02e-07 indicates that as family income rises, there is a subtle trend towards having fewer children. While this relationship was not found to be statistically significant given the relatively high p-value, it could reflect socio-economic dynamics. Families with higher incomes might prioritize career, education, or other factors that could delay or reduce family planning. Alternatively, the rising cost of child-rearing in certain socio-economic classes might also play a role.
+
+The predictor **AFCB** showcases a strong positive relationship with `NCHILD`. With an estimate of 0.1985 and a nearly zero p-value, this relationship is statistically significant. The positive coefficient suggests that as the value of `AFCB` increases, families tend to have more children. This could be attributed to various factors, perhaps cultural or societal norms that favor larger families when certain conditions denoted by `AFCB` are met.
+
+Education, represented by **EDUC**, paints an interesting picture. The negative coefficient suggests that as individuals attain higher education levels, they tend to have fewer children. This finding is statistically significant and resonates with global trends. Higher education often correlates with later life milestones, including marriage and family planning. Moreover, individuals with more education might prioritize their careers, further studies, or personal endeavors which might lead to having fewer children.
+
+**Usual Hours Worked** (`UHRSWORKT`) also revealed a noteworthy trend. A negative relationship with `NCHILD` implies that individuals who dedicate longer hours to their professions tend to have fewer children. This could be a direct result of the time constraints and commitments of a demanding job, leaving less time for family life. 
+
+Lastly, **Wage Income** (`INCWAGE`) demonstrates a marginal negative relationship with `NCHILD`. As wage income rises, there's a nuanced decline in the number of children. This might seem counterintuitive, but it could be tied to the lifestyle and choices of higher-wage earners. Perhaps those with higher wages prioritize other forms of investment, both personal and financial, over having a larger family.
+
+The graphical representation further visualizes these relationships. Clear slopes for predictors like `AFCB`, `EDUC`, and `UHRSWORKT` reinforce their respective relationships with `NCHILD`, offering a visual complement to the tabular data.
+
+In weaving this narrative, our analysis underscores the complex interplay of socio-economic, educational, and work-related factors in determining family size. Each predictor, with its unique influence, contributes to the mosaic of decisions and circumstances that shape family planning.
+
+
+
+
+## Discussion ##
+The findings from our analysis offer a rich exploration into the socio-economic factors influencing fertility rates, providing both affirmation of established theories and intriguing deviations that highlight the ever-evolving nature of this field.
+
+One critical path for further research is examining cultural and regional differences. Investigating how cultural norms and regional contexts interact with the socio-economic variables we've studied will deepen our understanding. For instance, understanding the role these factors play in varying regions across the country, and contrasting urban versus rural settings, could yield nuanced insights into fertility decisions.
+
+Additionally, the potential impact of unexamined variables, including psychological or societal elements, opens new research frontiers. Questions about how work-life balance perceptions, societal expectations, or career aspirations intersect with fertility decisions are ripe for exploration. Moreover, emerging global trends like the rise of remote work, advancements in women's education, and changing family structures present an opportunity for a longitudinal study. Tracking these trends over the next decade could unveil how they reshape fertility decisions.
+
+Another key area is the influence of governmental and organizational policies on fertility. Investigating how policies related to parental leave, childcare support, and family welfare have historically affected fertility decisions across different socio-economic groups will be invaluable for future policy formulation.
+
+Now, integrating these research directions with the results of our regression model, we see both continuity and change in the economic analysis of fertility. Our findings echo the first-generation models in some respects, such as the persistent negative relationship between family income and fertility, and the inverse correlation between higher education and family size. These trends suggest ongoing influences of financial and educational factors on fertility decisions.
+
+However, our study also reveals new dynamics. The positive correlation between age at first childbearing and number of children deviates from past models, hinting at a modern socio-economic environment that supports both delayed childbearing and larger families. Furthermore, the negative relationship between work hours and fertility points to the increasing relevance of work-life balance in fertility decisions, a factor less emphasized or measured in past economic models.
+
+To further these studies, we propose developing updated fertility models that integrate these contemporary socio-economic factors. These models should account for the nuanced interplay between traditional factors like income and education, and emerging influences like work-life balance and societal shifts. Moreover, qualitative studies focusing on individual narratives and case studies could add depth to our quantitative findings, offering a more holistic view of the complex decision-making processes behind fertility choices.
+
+In conclusion, our research lays a solid foundation but also opens the door to a myriad of new questions and research opportunities. A continued, multifaceted exploration will not only refine our understanding of fertility decisions but also provide a comprehensive view of the diverse influences shaping these choices.
+  
+  
+## Citation ##
+
+Rong, Z., & Cao, G. (2015). A framework for research and practice: Relationship among perception of organizational politics, perceived organization support, organizational commitment and work engagements. Open Journal of Business and Management, 3(4), 433-440. https://doi.org/10.4236/ojbm.2015.34043
+
+Sarah Flood, Miriam King, Renae Rodgers, Steven Ruggles, J. Robert Warren, Daniel Backman, Annie Chen, Grace Cooper, Stephanie Richards, Megan Schouweiler and Michael Westberry. IPUMS CPS: Version 11.0 [dataset]. Minneapolis, MN: IPUMS, 2023. https://doi.org/10.18128/D030.V11.0
+
+Götmark, F., Andersson, M. Human fertility in relation to education, economy, religion, contraception, and family planning programs. BMC Public Health 20, 265 (2020). https://doi.org/10.1186/s12889-020-8331-7
+
+Wang, Q., & Sun, X. (2016). The Role of Socio-political and Economic Factors in Fertility Decline: A Cross-country Analysis. World Development, 87, 360-370. https://doi.org/10.1016/j.worlddev.2016.07.004
+
+Dehlendorf C, Rodriguez MI, Levy K, Borrero S, Steinauer J. Disparities in family planning. Am J Obstet Gynecol. 2010 Mar;202(3):214-20. doi: 10.1016/j.ajog.2009.08.022. PMID: 20207237; PMCID: PMC2835625.
+
+Țarcă V, Țarcă E, Luca FA. The Impact of the Main Negative Socio-Economic Factors on Female Fertility. Healthcare (Basel). 2022 Apr 14;10(4):734. doi: 10.3390/healthcare10040734. PMID: 35455911; PMCID: PMC9024718.
+
+Kenneth M. Johnson. U.S. Fertility Rates and Births Continue to Diminish. University of New Hampshire. University of New Hampshire. 2020 May. https://scholars.unh.edu/carsey/403/
+
+Matthias Doepke & Anne Hannusch & Fabian Kindermann & MichÃ¨le Tertilt, 2022. "The Economics of Fertility: A New Era," Working Papers 2022-012, Human Capital and Economic Opportunity Working Group.
